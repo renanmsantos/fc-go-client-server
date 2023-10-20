@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -25,14 +26,18 @@ func main() {
 	// Make call to server.go to make dollar quotation only field BID.
 	dollarQuotation, err := GetDollarQuotationFromServer(ctx)
 	if err != nil {
-		fmt.Println("ERROR on request: ", err)
+		if errors.Is(err, context.DeadlineExceeded) {
+			fmt.Println("Timeout reached.")
+			return
+		}
+		fmt.Println("Request ERROR: ", err)
 		return
 	}
 
 	// Save response on cotacao.txt, on format: Dólar:{valor}
 	err = SaveOnFile(dollarQuotation)
 	if err != nil {
-		fmt.Println("ERROR on save file: ", err)
+		fmt.Println("Save file ERROR: ", err)
 		return
 	}
 }
@@ -59,8 +64,9 @@ func GetDollarQuotationFromServer(ctx context.Context) (Quotation, error) {
 		return Quotation{}, err
 	}
 
-	fmt.Print("Returned request server:" + string(resp))
+	fmt.Print("Response from server:" + string(resp))
 	return quotation, nil
+
 }
 
 func SaveOnFile(dolar Quotation) error {
